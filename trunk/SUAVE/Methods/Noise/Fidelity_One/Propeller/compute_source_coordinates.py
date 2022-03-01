@@ -142,7 +142,7 @@ def compute_blade_section_source_coordinates(AoA,acoustic_outputs,rotors,mls,set
 
     ti = time.time() 
     blade_section_position_vectors                                 = Data() 
-    blade_section_position_vectors.blade_section_coordinate_sys    =  np.zeros((num_cpt,num_mic,num_rot,num_sec,num_azi,num_cf,3,1))
+    blade_section_position_vectors.blade_section_coordinate_sys    = np.zeros((num_cpt,num_mic,num_rot,num_sec,num_azi,num_cf,3,1))
     blade_section_position_vectors.rotor_coordinate_sys            = np.zeros((num_cpt,num_mic,num_rot,num_sec,num_azi,num_cf,3,1))
     blade_section_position_vectors.vehicle_coordinate_sys          = np.zeros((num_cpt,num_mic,num_rot,num_sec,num_azi,num_cf,3,1))  
     blade_section_position_vectors.cos_phi                         = np.zeros((num_cpt,num_mic,num_rot,num_sec,num_azi,num_cf,2))  
@@ -179,7 +179,7 @@ def compute_blade_section_source_coordinates(AoA,acoustic_outputs,rotors,mls,set
             
     tf           = time.time()
     elapsed_time = round((tf-ti),2)
-    print('Broadband computation Elapsed Time: ' + str(elapsed_time) + ' secs')      
+    print('Noise Coordinate Computation Elapsed Time: ' + str(elapsed_time) + ' secs')      
         
     return blade_section_position_vectors
 

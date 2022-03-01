@@ -9,8 +9,11 @@
 #  Imports
 # ---------------------------------------------------------------------- 
 import numpy as np
-from scipy.special import jv 
-import scipy as sp
+from scipy.special import jv  
+import scipy as sp 
+import time 
+import concurrent.futures
+from SUAVE.Core import Data   
 
 from SUAVE.Methods.Noise.Fidelity_One.Noise_Tools.dbA_noise  import A_weighting  
 from SUAVE.Methods.Noise.Fidelity_One.Noise_Tools            import SPL_harmonic_to_third_octave
@@ -18,9 +21,10 @@ from SUAVE.Methods.Noise.Fidelity_One.Noise_Tools            import SPL_harmonic
 # ----------------------------------------------------------------------
 # Harmonic Noise Domain Broadband Noise Computation
 # ----------------------------------------------------------------------
-## @ingroup Methods-Noise-Fidelity_One-Propeller
-def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
-                           velocity_vector,rotors,aeroacoustic_data,settings,res):
+## @ingroup Methods-Noise-Fidelity_One-Propeller  
+def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,velocity_vector,
+                           rotors,aeroacoustic_data,settings,harmonic_noise_results):
+
     '''This computes the  harmonic noise (i.e. thickness and loading noise) of a rotor or rotor
     in the frequency domain
 
@@ -44,10 +48,10 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
         rotors                        - data structure of rotors                                                   [None]
         aeroacoustic_data             - data structure of acoustic data                                            [None]
         settings                      - accoustic settings                                                         [None] 
-        res                           - results data structure                                                     [None] 
+        harmonic_noise_results        - results data structure                                                     [None] 
 
     Outputs 
-        res.                                    *acoustic data is stored and passed in data structures*                                                                            
+        harmonic_noise_results.                   *acoustic data is stored and passed in data structures*                                                                            
             SPL_prop_harmonic_bpf_spectrum       - harmonic noise in blade passing frequency spectrum              [dB]
             SPL_prop_harmonic_bpf_spectrum_dBA   - dBA-Weighted harmonic noise in blade passing frequency spectrum [dbA]                  
             SPL_prop_harmonic_1_3_spectrum       - harmonic noise in 1/3 octave spectrum                           [dB]
@@ -67,36 +71,76 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     num_r        = len(rotor.radius_distribution) 
     num_azi      = aeroacoustic_data.number_azimuthal_stations
     orientation  = np.array(rotor.orientation_euler_angles) * 1 
+    num_processors = settings.number_of_multiprocessing_workers
     body2thrust  = sp.spatial.transform.Rotation.from_rotvec(orientation).as_matrix()
+
+
+    ti = time.time()  
+    harmonic_noise_results.f                                  = np.zeros((num_cpt,num_mic,num_rot,num_r,num_h)) 
+    harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum     = np.zeros((num_cpt,num_mic,num_rot,num_h)) 
+    harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum_dBA = np.zeros((num_cpt,num_mic,num_rot,num_h)) 
+    harmonic_noise_results.SPL_prop_harmonic_1_3_spectrum     = np.zeros((num_cpt,num_mic,num_rot,num_h))  
+    harmonic_noise_results.SPL_prop_harmonic_1_3_spectrum_dBA = np.zeros((num_cpt,num_mic,num_rot,num_h))  
+    harmonic_noise_results.p_pref_harmonic                    = np.zeros((num_cpt,num_mic,num_rot,num_h)) 
+    harmonic_noise_results.p_pref_harmonic_dBA                = np.zeros((num_cpt,num_mic,num_rot,num_h)) 
+    harmonic_noise_results.p_harmonic                         = np.zeros((num_cpt,num_mic,num_rot,num_azi)) 
+    harmonic_noise_results.azimuthal_time                     = np.zeros((num_cpt,num_mic,num_rot,num_azi))   
     
+    with concurrent.futures.ProcessPoolExecutor(max_workers = num_processors) as executor:  
+        results = [executor.submit(rotational_noise,i,harmonics,num_cpt,num_rot,num_r,num_h,freestream,angle_of_attack,body2thrust,position_vector,velocity_vector,rotor,
+            aeroacoustic_data,num_azi,settings) for i in range(num_mic)] 
+        mi = 0
+        for instance in concurrent.futures.as_completed(results):
+            singe_mic_harmonic_noise_results = instance.result()   
+            harmonic_noise_results.f[:,mi,:,:,:]                                = singe_mic_harmonic_noise_results.f                                 
+            harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum[:,mi,:,:]     = singe_mic_harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum    
+            harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum_dBA[:,mi,:,:] = singe_mic_harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum_dBA
+            harmonic_noise_results.SPL_prop_harmonic_1_3_spectrum[:,mi,:,:]     = singe_mic_harmonic_noise_results.SPL_prop_harmonic_1_3_spectrum    
+            harmonic_noise_results.SPL_prop_harmonic_1_3_spectrum_dBA[:,mi,:,:] = singe_mic_harmonic_noise_results.SPL_prop_harmonic_1_3_spectrum_dBA
+            harmonic_noise_results.p_pref_harmonic[:,mi,:,:]                    = singe_mic_harmonic_noise_results.p_pref_harmonic                   
+            harmonic_noise_results.p_pref_harmonic_dBA[:,mi,:,:]                = singe_mic_harmonic_noise_results.p_pref_harmonic_dBA                
+            harmonic_noise_results.p_harmonic[:,mi,:,:]                         = singe_mic_harmonic_noise_results.p_harmonic                        
+            harmonic_noise_results.azimuthal_time[:,mi,:,:]                     = singe_mic_harmonic_noise_results.azimuthal_time 
+            mi += 1 
+    tf           = time.time()
+    elapsed_time = round((tf-ti),2)
+    print('Harmonic Noise computation Elapsed Time: ' + str(elapsed_time) + ' secs') 
+    
+    return 
+
     # ----------------------------------------------------------------------------------
     # Rotational Noise  Thickness and Loading Noise
-    # ----------------------------------------------------------------------------------  
+    # ---------------------------------------------------------------------------------- 
+def rotational_noise(i,harmonics,num_cpt,num_rot,num_r,num_h,freestream,angle_of_attack,body2thrust,position_vector,velocity_vector,rotor,
+                     aeroacoustic_data,num_azi,settings): 
+
+    res = Data()
+
     # [control point ,microphones, rotors, radial distribution, harmonics]  
-    m              = np.tile(harmonics[None,None,None,None,:],(num_cpt,num_mic,num_rot,num_r,1))                 # harmonic number 
+    m              = np.tile(harmonics[None,None,None,:],(num_cpt,num_rot,num_r,1))                 # harmonic number 
     m_1d           = harmonics                                                                                         
     p_ref          = 2E-5                                                                                        # referece atmospheric pressure
-    a              = np.tile(freestream.speed_of_sound[:,:,None,None,None],(1,num_mic,num_rot,num_r,num_h))      # speed of sound
-    rho            = np.tile(freestream.density[:,:,None,None,None],(1,num_mic,num_rot,num_r,num_h))             # air density   
-    alpha          = np.tile((angle_of_attack + np.arccos(body2thrust[0,0]))[:,:,None,None,None],(1,num_mic,num_rot,num_r,num_h))           
-    x              = np.tile(position_vector[:,:,:,0][:,:,:,None,None],(1,1,1,num_r,num_h))                      # x component of position vector of rotor to microphone 
-    y              = np.tile(position_vector[:,:,:,1][:,:,:,None,None],(1,1,1,num_r,num_h))                      # y component of position vector of rotor to microphone
-    z              = np.tile(position_vector[:,:,:,2][:,:,:,None,None],(1,1,1,num_r,num_h))                      # z component of position vector of rotor to microphone
-    Vx             = np.tile(velocity_vector[:,0][:,None,None,None,None],(1,num_mic,num_rot,num_r,num_h))        # x velocity of rotor  
-    Vy             = np.tile(velocity_vector[:,1][:,None,None,None,None],(1,num_mic,num_rot,num_r,num_h))        # y velocity of rotor 
-    Vz             = np.tile(velocity_vector[:,2][:,None,None,None,None],(1,num_mic,num_rot,num_r,num_h))        # z velocity of rotor 
+    a              = np.tile(freestream.speed_of_sound[:,:,None,None],(1,num_rot,num_r,num_h))      # speed of sound
+    rho            = np.tile(freestream.density[:,:,None,None],(1,num_rot,num_r,num_h))             # air density   
+    alpha          = np.tile((angle_of_attack + np.arccos(body2thrust[0,0]))[:,:,None,None],(1,num_rot,num_r,num_h))           
+    x              = np.tile(position_vector[:,i,:,0][:,:,None,None],(1,1,num_r,num_h))                      # x component of position vector of rotor to microphone 
+    y              = np.tile(position_vector[:,i,:,1][:,:,None,None],(1,1,num_r,num_h))                      # y component of position vector of rotor to microphone
+    z              = np.tile(position_vector[:,i,:,2][:,:,None,None],(1,1,num_r,num_h))                      # z component of position vector of rotor to microphone
+    Vx             = np.tile(velocity_vector[:,0][:,None,None,None],(1,num_rot,num_r,num_h))        # x velocity of rotor  
+    Vy             = np.tile(velocity_vector[:,1][:,None,None,None],(1,num_rot,num_r,num_h))        # y velocity of rotor 
+    Vz             = np.tile(velocity_vector[:,2][:,None,None,None],(1,num_rot,num_r,num_h))        # z velocity of rotor 
     B              = rotor.number_of_blades                                                                      # number of rotor blades
-    omega          = np.tile(aeroacoustic_data.omega[:,:,None,None,None],(1,num_mic,num_rot,num_r,num_h))        # angular velocity       
-    dT_dr          = np.tile(aeroacoustic_data.blade_dT_dr[:,None,None,:,None],(1,num_mic,num_rot,1,num_h))      # nondimensionalized differential thrust distribution 
-    dQ_dr          = np.tile(aeroacoustic_data.blade_dQ_dr[:,None,None,:,None],(1,num_mic,num_rot,1,num_h))      # nondimensionalized differential torque distribution
-    R              = np.tile(rotor.radius_distribution[None,None,None,:,None],(num_cpt,num_mic,num_rot,1,num_h)) # radial location     
-    c              = np.tile(rotor.chord_distribution[None,None,None,:,None],(num_cpt,num_mic,num_rot,1,num_h))  # blade chord    
+    omega          = np.tile(aeroacoustic_data.omega[:,:,None,None],(1,num_rot,num_r,num_h))        # angular velocity       
+    dT_dr          = np.tile(aeroacoustic_data.blade_dT_dr[:,None,:,None],(1,num_rot,1,num_h))      # nondimensionalized differential thrust distribution 
+    dQ_dr          = np.tile(aeroacoustic_data.blade_dQ_dr[:,None,:,None],(1,num_rot,1,num_h))      # nondimensionalized differential torque distribution
+    R              = np.tile(rotor.radius_distribution[None,None,:,None],(num_cpt,num_rot,1,num_h)) # radial location     
+    c              = np.tile(rotor.chord_distribution[None,None,:,None],(num_cpt,num_rot,1,num_h))  # blade chord    
     R_tip          = rotor.tip_radius                                                     
-    t_c            = np.tile(rotor.thickness_to_chord[None,None,None,:,None],(num_cpt,num_mic,num_rot,1,num_h))  # thickness to chord ratio
-    MCA            = np.tile(rotor.mid_chord_alignment[None,None,None,:,None],(num_cpt,num_mic,num_rot,1,num_h)) # Mid Chord Alighment  
+    t_c            = np.tile(rotor.thickness_to_chord[None,None,:,None],(num_cpt,num_rot,1,num_h))  # thickness to chord ratio
+    MCA            = np.tile(rotor.mid_chord_alignment[None,None,:,None],(num_cpt,num_rot,1,num_h)) # Mid Chord Alighment  
     res.f          = B*omega*m/(2*np.pi) 
-    D              = 2*R[0,0,0,-1,:]                                                                             # rotor diameter    
-    r              = R/R[0,0,0,-1,:]                                                                             # non dimensional radius distribution  
+    D              = 2*R[0,0,-1,:]                                                                             # rotor diameter    
+    r              = R/R[0,0,-1,:]                                                                             # non dimensional radius distribution  
     S              = np.sqrt(x**2 + y**2 + z**2)                                                                 # distance between rotor and the observer    
     theta          = np.arccos(x/S)                                                            
     Y              = np.sqrt(y**2 + z**2)                                                                        # observer distance from rotor axis          
@@ -113,15 +157,15 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     theta_r_prime  = np.arccos(np.cos(theta_r)*np.cos(alpha) + np.sin(theta_r)*np.sin(phi)*np.sin(alpha) )
 
     # initialize thickness and loading noise matrices
-    psi_L          = np.zeros((num_cpt,num_mic,num_rot,num_r,num_h))
-    psi_V          = np.zeros((num_cpt,num_mic,num_rot,num_r,num_h))
+    psi_L          = np.zeros((num_cpt,num_rot,num_r,num_h))
+    psi_V          = np.zeros((num_cpt,num_rot,num_r,num_h))
 
     # normalized thickness  and loading shape functions                
-    k_x               = ((2*m*B*B_D*M_t)/(M_r*(1 - M_x*np.cos(theta_r))))      # wave number 
-    psi_V[:,:,:,0,:]  = 2/3   
-    psi_L[:,:,:,0,:]  = 1     
-    psi_V[:,:,:,1:,:] = (8/(k_x[:,:,:,1:,:]**2))*((2/k_x[:,:,:,1:,:])*np.sin(0.5*k_x[:,:,:,1:,:]) - np.cos(0.5*k_x[:,:,:,1:,:]))    
-    psi_L[:,:,:,1:,:] = (2/k_x[:,:,:,1:,:])*np.sin(0.5*k_x[:,:,:,1:,:])                  
+    k_x             = ((2*m*B*B_D*M_t)/(M_r*(1 - M_x*np.cos(theta_r))))      # wave number 
+    psi_V[:,:,0,:]  = 2/3   
+    psi_L[:,:,0,:]  = 1     
+    psi_V[:,:,1:,:] = (8/(k_x[:,:,1:,:]**2))*((2/k_x[:,:,1:,:])*np.sin(0.5*k_x[:,:,1:,:]) - np.cos(0.5*k_x[:,:,1:,:]))    
+    psi_L[:,:,1:,:] = (2/k_x[:,:,1:,:])*np.sin(0.5*k_x[:,:,1:,:])                  
 
     # sound pressure for thickness noise   
     Jmb               = jv(m*B,((m*B*r*M_t*np.sin(theta_r_prime))/(1 - M_x*np.cos(theta_r))))  
@@ -132,36 +176,36 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     S_r               = Y/(np.sin(theta_r))                                # distance in retarded reference frame                                                                             
     exponent_fraction = np.exp(1j*m_1d*B*((omega*S_r/a) +  phi_prime - np.pi/2))/(1 - M_x*np.cos(theta_r))
     p_mT_H_integral   = -((M_r**2)*(t_c)*np.exp(1j*phi_s)*Jmb*(k_x**2)*psi_V ) * ((rho*(a**2)*B*np.sin(theta_r))/(4*np.sqrt(2)*np.pi*(Y/D)))* exponent_fraction
-    p_mT_H            = np.trapz(p_mT_H_integral,x = r[0,0,0,:,0], axis =3) 
+    p_mT_H            = np.trapz(p_mT_H_integral,x = r[0,0,:,0], axis =2) 
 
     p_mT_H_abs        = abs(p_mT_H)             
     p_mL_H_integral   = (((np.cos(theta_r_prime)/(1 - M_x*np.cos(theta_r)))*dT_dr - (1/((r**2)*M_t*R_tip))*dQ_dr)
-                         * np.exp(1j*phi_s)*Jmb * psi_L)*(m_1d*B*M_t*np.sin(theta_r)/ (2*np.sqrt(2)*np.pi*Y*R_tip)) *exponent_fraction
-    p_mL_H            = np.trapz(p_mL_H_integral,x = r[0,0,0,:,0], axis = 3 ) 
+                             * np.exp(1j*phi_s)*Jmb * psi_L)*(m_1d*B*M_t*np.sin(theta_r)/ (2*np.sqrt(2)*np.pi*Y*R_tip)) *exponent_fraction
+    p_mL_H            = np.trapz(p_mL_H_integral,x = r[0,0,:,0], axis = 2 ) 
     p_mL_H_abs        =  abs(p_mL_H)  
 
     # sound pressure levels  
     res.SPL_prop_harmonic_bpf_spectrum     = 20*np.log10((abs(p_mL_H_abs + p_mT_H_abs))/p_ref) 
-    res.SPL_prop_harmonic_bpf_spectrum_dBA = A_weighting(res.SPL_prop_harmonic_bpf_spectrum,res.f[:,:,:,0,:]) 
-    res.SPL_prop_harmonic_1_3_spectrum     = SPL_harmonic_to_third_octave(res.SPL_prop_harmonic_bpf_spectrum,res.f[:,0,0,0,:],settings)         
-    res.SPL_prop_harmonic_1_3_spectrum_dBA = SPL_harmonic_to_third_octave(res.SPL_prop_harmonic_bpf_spectrum_dBA,res.f[:,0,0,0,:],settings)  
+    res.SPL_prop_harmonic_bpf_spectrum_dBA = A_weighting(res.SPL_prop_harmonic_bpf_spectrum,res.f[:,:,0,:]) 
+    res.SPL_prop_harmonic_1_3_spectrum     = SPL_harmonic_to_third_octave(res.SPL_prop_harmonic_bpf_spectrum,res.f[:,0,0,:],settings)         
+    res.SPL_prop_harmonic_1_3_spectrum_dBA = SPL_harmonic_to_third_octave(res.SPL_prop_harmonic_bpf_spectrum_dBA,res.f[:,0,0,:],settings)  
     res.SPL_prop_harmonic_1_3_spectrum[np.isinf(res.SPL_prop_harmonic_1_3_spectrum)]         = 0
     res.SPL_prop_harmonic_1_3_spectrum_dBA[np.isinf(res.SPL_prop_harmonic_1_3_spectrum_dBA)] = 0
 
 
     res.p_pref_harmonic                    = 10**(res.SPL_prop_harmonic_bpf_spectrum/10)   
     res.p_pref_harmonic_dBA                = 10**(res.SPL_prop_harmonic_bpf_spectrum_dBA/10)  
-    
+
     # compute acoustic waveforms around azimuth of propeller 
-    p_mT_H_azi = np.tile(p_mT_H[:,:,:,None,:],(1,1,1,num_azi,1))
-    p_mL_H_azi = np.tile(p_mL_H[:,:,:,None,:],(1,1,1,num_azi,1))
-    m_azi      = np.tile(m[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1))
-    omega_azi  = np.tile(omega[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1))
-    time       = np.tile(aeroacoustic_data.omega[:,:,None,None,None],(1,num_mic,num_rot,num_azi,num_h))
-    p_t        = np.sum((p_mT_H_azi + p_mL_H_azi)*np.exp(-1j*m_azi*B*omega_azi*time),axis = 4)
+    p_mT_H_azi = np.tile(p_mT_H[:,:,None,:],(1,1,num_azi,1))
+    p_mL_H_azi = np.tile(p_mL_H[:,:,None,:],(1,1,num_azi,1))
+    m_azi      = np.tile(m[:,:,0,:][:,:,None,:],(1,1,num_azi,1))
+    omega_azi  = np.tile(omega[:,:,0,:][:,:,None,:],(1,1,num_azi,1))
+    az_time    = np.tile(aeroacoustic_data.omega[:,:,None,None],(1,num_rot,num_azi,num_h))
+    p_t        = np.sum((p_mT_H_azi + p_mL_H_azi)*np.exp(-1j*m_azi*B*omega_azi*az_time),axis = 3)
     p_t_abs    = abs(p_t)
 
     res.p_harmonic     = p_t_abs 
-    res.azimuthal_time = time
-    
-    return
+    res.azimuthal_time = az_time[:,:,:,0]
+
+    return res
