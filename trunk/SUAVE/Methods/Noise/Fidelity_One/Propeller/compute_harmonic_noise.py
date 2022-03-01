@@ -157,7 +157,7 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     p_mL_H_azi = np.tile(p_mL_H[:,:,:,None,:],(1,1,1,num_azi,1))
     m_azi      = np.tile(m[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1))
     omega_azi  = np.tile(omega[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1))
-    time       = np.tile(aeroacoustic_data.omega[:,:,None,None,None],(num_cpt,num_mic,num_rot,num_azi,num_h))
+    time       = np.tile(aeroacoustic_data.omega[:,:,None,None,None],(1,num_mic,num_rot,num_azi,num_h))
     p_t        = np.sum((p_mT_H_azi + p_mL_H_azi)*np.exp(-1j*m_azi*B*omega_azi*time),axis = 4)
     p_t_abs    = abs(p_t)
 
