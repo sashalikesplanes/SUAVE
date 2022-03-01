@@ -98,6 +98,11 @@ def propeller_mid_fidelity(rotors,aeroacoustic_data,segment,settings):
     Results.SPL_harmonic                                  = SPL_spectra_arithmetic(SPL_spectra_arithmetic(Noise.SPL_prop_harmonic_1_3_spectrum))    
     Results.SPL_broadband                                 = SPL_spectra_arithmetic(SPL_spectra_arithmetic(Noise.SPL_prop_broadband_1_3_spectrum)) 
     Results.SPL_harmonic_1_3_spectrum                     = SPL_spectra_arithmetic(Noise.SPL_prop_harmonic_1_3_spectrum)       
-    Results.SPL_broadband_1_3_spectrum                    = SPL_spectra_arithmetic(Noise.SPL_prop_broadband_1_3_spectrum) 
-    
+    Results.SPL_broadband_1_3_spectrum                    = SPL_spectra_arithmetic(Noise.SPL_prop_broadband_1_3_spectrum)  
+    Results.SPL_prop_azimuthal_harmonic                   = Noise.p_harmonic  
+    Results.azimuthal_time                                = Noise.azimuthal_time
+    Results.p_pref_azimuthal_broadband                    = Noise.p_pref_azimuthal_broadband                    
+    Results.p_pref_azimuthal_broadband_dBA                = Noise.p_pref_azimuthal_broadband_dBA                
+    Results.SPL_prop_azimuthal_broadband_spectrum         = Noise.SPL_prop_azimuthal_broadband_spectrum         
+    Results.SPL_prop_azimuthal_broadband_spectrum_dBA     = Noise.SPL_prop_azimuthal_broadband_spectrum_dBA       
     return Results

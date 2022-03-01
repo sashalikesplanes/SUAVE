@@ -333,23 +333,36 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
  
         # Power Spectral Density from each blade
         mult       = ((omega/c_0)**2)*(c**2)*delta_r*(1/(32*np.pi**2))*(B/(2*np.pi))
-        int_x      = np.linspace(0,2*np.pi,num_azi)  
-        S_pp       = mult[:,:,:,:,0,:,:]*np.trapz(((Z/(X**2 + (1-M**2)*(Y**2 + Z**2)))**2)*norm_L_sq*\
-                                                  (1.6*(0.8*U_inf)/omega)*Phi_pp,x = int_x,axis = 4) 
-            
+        int_x      = np.linspace(0,2*np.pi,num_azi)    
+        S_pp_azi   = mult*((Z/(X**2 + (1-M**2)*(Y**2 + Z**2)))**2)*norm_L_sq*\
+                                                  (1.6*(0.8*U_inf)/omega)*Phi_pp  
+        S_pp_azi[np.isinf(S_pp_azi)] = 0   
+        S_pp       = np.trapz(S_pp_azi,x = int_x,axis = 4)  
+        
         # Sound Pressure Level
-        SPL                        = 10*np.log10((2*np.pi*abs(S_pp))/((p_ref)**2)) 
-        SPL[np.isinf(SPL)]         = 0   
-        SPL_rotor                  = SPL_arithmetic(SPL_arithmetic(SPL, sum_axis = 5 ), sum_axis = 3 )
+        SPL                          = 10*np.log10((2*np.pi*abs(S_pp))/((p_ref)**2)) 
+        SPL_azi                      = 10*np.log10((2*np.pi*S_pp_azi)/((p_ref)**2))
+        SPL_surf                     = SPL_arithmetic(SPL, sum_axis = 5 )     
+        SPL_rotor                    = SPL_arithmetic(SPL_surf, sum_axis = 3 )   
+        SPL_rotor_dBA                = A_weighting(SPL_rotor,frequency)
+        SPL_surf_azi                 = SPL_arithmetic(SPL_azi, sum_axis = 6 ) 
+        SPL_rotor_azi                = SPL_arithmetic(SPL_surf_azi, sum_axis = 3 ) 
+        SPL_rotor_dBA_azi            = A_weighting(SPL_rotor_azi,frequency)  
         
         # convert to 1/3 octave spectrum
         f = np.repeat(np.atleast_2d(frequency),num_cpt,axis = 0)
  
+
+        res.p_pref_broadband                              = 10**(SPL_rotor /10) 
+        res.p_pref_broadband_dBA                          = 10**(SPL_rotor_dBA /10)   
         res.SPL_prop_broadband_spectrum                   = SPL_rotor
         res.SPL_prop_broadband_spectrum_dBA               = A_weighting(SPL_rotor,frequency) 
-        res.SPL_prop_broadband_1_3_spectrum               = SPL_harmonic_to_third_octave(SPL_rotor,f,settings)
-        res.SPL_prop_broadband_1_3_spectrum_dBA           = SPL_harmonic_to_third_octave(A_weighting(SPL_rotor,frequency),f,settings) 
-        res.SPL_prop_broadband_1_3_spectrum               = SPL_harmonic_to_third_octave(SPL_rotor,f,settings)
+        res.SPL_prop_broadband_1_3_spectrum               = SPL_harmonic_to_third_octave(SPL_rotor,f,settings)  
+        res.SPL_prop_broadband_1_3_spectrum_dBA           = SPL_harmonic_to_third_octave(SPL_rotor_dBA,f,settings)   
+        res.p_pref_azimuthal_broadband                    = 10**(SPL_rotor_azi /10)   
+        res.p_pref_azimuthal_broadband_dBA                = 10**(SPL_rotor_dBA_azi /10)  
+        res.SPL_prop_azimuthal_broadband_spectrum         = SPL_rotor_azi  
+        res.SPL_prop_azimuthal_broadband_spectrum_dBA     = SPL_rotor_dBA_azi  
         
     return
 

@@ -65,6 +65,7 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     num_rot      = len(position_vector[0,0,:,0])  
     rotor        = rotors[list(rotors.keys())[0]] 
     num_r        = len(rotor.radius_distribution) 
+    num_azi      = aeroacoustic_data.number_azimuthal_stations
     orientation  = np.array(rotor.orientation_euler_angles) * 1 
     body2thrust  = sp.spatial.transform.Rotation.from_rotvec(orientation).as_matrix()
     
@@ -107,7 +108,7 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     B_D            = c/D                                                                                         
     phi            = np.arctan(z/y)                                                                              # tangential angle   
 
-    # retarted  theta angle in the retarded reference frame
+    # retarded theta angle in the retarded reference frame
     theta_r        = np.arccos(np.cos(theta)*np.sqrt(1 - (M_x**2)*(np.sin(theta))**2) + M_x*(np.sin(theta))**2 )   
     theta_r_prime  = np.arccos(np.cos(theta_r)*np.cos(alpha) + np.sin(theta_r)*np.sin(phi)*np.sin(alpha) )
 
@@ -147,4 +148,20 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     res.SPL_prop_harmonic_1_3_spectrum[np.isinf(res.SPL_prop_harmonic_1_3_spectrum)]         = 0
     res.SPL_prop_harmonic_1_3_spectrum_dBA[np.isinf(res.SPL_prop_harmonic_1_3_spectrum_dBA)] = 0
 
+
+    res.p_pref_harmonic                    = 10**(res.SPL_prop_harmonic_bpf_spectrum/10)   
+    res.p_pref_harmonic_dBA                = 10**(res.SPL_prop_harmonic_bpf_spectrum_dBA/10)  
+    
+    # compute acoustic waveforms around azimuth of propeller 
+    p_mT_H_azi = np.tile(p_mT_H[:,:,:,None,:],(1,1,1,num_azi,1))
+    p_mL_H_azi = np.tile(p_mL_H[:,:,:,None,:],(1,1,1,num_azi,1))
+    m_azi      = np.tile(m[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1))
+    omega_azi  = np.tile(omega[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1))
+    time       = np.tile(aeroacoustic_data.omega[:,:,None,None,None],(num_cpt,num_mic,num_rot,num_azi,num_h))
+    p_t        = np.sum((p_mT_H_azi + p_mL_H_azi)*np.exp(-1j*m_azi*B*omega_azi*time),axis = 4)
+    p_t_abs    = abs(p_t)
+
+    res.p_harmonic     = p_t_abs 
+    res.azimuthal_time = time
+    
     return
