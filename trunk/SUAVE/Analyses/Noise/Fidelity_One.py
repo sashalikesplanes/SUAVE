@@ -76,6 +76,7 @@ class Fidelity_One(Noise):
         settings.print_noise_output                   = False 
         settings.fix_lateral_microphone_distance      = True
         settings.static_microphone_array              = False  
+        settings.parallel_computing                   = False # TO BE REMOVED
         settings.urban_canyon_microphone_locations    = None 
         settings.number_of_multiprocessing_workers    = None
         settings.urban_canyon_building_dimensions     = []
