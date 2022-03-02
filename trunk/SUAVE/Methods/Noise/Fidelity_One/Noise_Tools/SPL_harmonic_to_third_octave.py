@@ -58,7 +58,7 @@ def SPL_harmonic_to_third_octave(SPL,f,settings):
             SPL_in_range = np.empty(shape=[dim_prop,0 ])
             for k in range(num_f):  
                 if (lf[j] <= f[i,k]) and (f[i,k] <= uf[j]):   
-                    SPL_in_range = np.concatenate((SPL_in_range,np.atleast_2d(SPL[i,:,k])), axis = 1) 
+                    SPL_in_range = np.concatenate((SPL_in_range,np.atleast_2d(SPL[i,:,k]).T), axis = 1) 
                 if len(SPL_in_range[0,:]) > 0:  
                     SPL_in_range[SPL_in_range != 0]  
                     SPL_third_octave[i,:,j] = SPL_arithmetic(SPL_in_range, sum_axis = 1)   

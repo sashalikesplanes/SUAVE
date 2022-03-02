@@ -84,7 +84,7 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     harmonic_noise_results.p_pref_harmonic                    = np.zeros((num_cpt,num_mic,num_rot,num_h)) 
     harmonic_noise_results.p_pref_harmonic_dBA                = np.zeros((num_cpt,num_mic,num_rot,num_h)) 
     harmonic_noise_results.p_harmonic                         = np.zeros((num_cpt,num_mic,num_rot,num_azi)) 
-    harmonic_noise_results.azimuthal_time                     = np.zeros((num_cpt,num_mic,num_rot,num_azi))   
+    harmonic_noise_results.azimuthal_time                     = np.zeros((num_cpt,num_mic,num_rot,num_azi))    
     
     with concurrent.futures.ProcessPoolExecutor(max_workers = num_processors) as executor:  
         results = [executor.submit(rotational_noise,i,harmonics,num_cpt,num_rot,num_r,num_h,freestream,angle_of_attack,body2thrust,position_vector,velocity_vector,rotor,
