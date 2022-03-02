@@ -173,8 +173,7 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
             
     tf           = time.time()
     elapsed_time = round((tf-ti),2)
-    print('Broadband Noise Computation Elapsed Time: ' + str(elapsed_time) + ' secs')      
-                    
+    print('Broadband Noise Computation Elapsed Time: ' + str(elapsed_time) + ' secs')  
                     
     return 
                     

@@ -10,8 +10,7 @@
 # ---------------------------------------------------------------------- 
 import numpy as np
 from scipy.special import jv  
-import scipy as sp 
-import time 
+import scipy as sp  
 import concurrent.futures
 from SUAVE.Core import Data   
 
@@ -73,9 +72,7 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     orientation  = np.array(rotor.orientation_euler_angles) * 1 
     num_processors = settings.number_of_multiprocessing_workers
     body2thrust  = sp.spatial.transform.Rotation.from_rotvec(orientation).as_matrix()
-
-
-    ti = time.time()  
+ 
     harmonic_noise_results.f                                  = np.zeros((num_cpt,num_mic,num_rot,num_r,num_h)) 
     harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum     = np.zeros((num_cpt,num_mic,num_rot,num_h)) 
     harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum_dBA = np.zeros((num_cpt,num_mic,num_rot,num_h)) 
@@ -101,11 +98,7 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
             harmonic_noise_results.p_pref_harmonic_dBA[:,mi,:,:]                = singe_mic_harmonic_noise_results.p_pref_harmonic_dBA                
             harmonic_noise_results.p_harmonic[:,mi,:,:]                         = singe_mic_harmonic_noise_results.p_harmonic                        
             harmonic_noise_results.azimuthal_time[:,mi,:,:]                     = singe_mic_harmonic_noise_results.azimuthal_time 
-            mi += 1 
-    tf           = time.time()
-    elapsed_time = round((tf-ti),2)
-    print('Harmonic Noise computation Elapsed Time: ' + str(elapsed_time) + ' secs') 
-    
+            mi += 1  
     return 
 
     # ----------------------------------------------------------------------------------

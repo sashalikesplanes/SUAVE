@@ -10,8 +10,7 @@
 import numpy as np 
 from SUAVE.Core import Data
 import scipy as sp
-import concurrent.futures
-import time 
+import concurrent.futures 
 # ----------------------------------------------------------------------
 #  Source Coordinates 
 # ---------------------------------------------------------------------
@@ -139,8 +138,7 @@ def compute_blade_section_source_coordinates(AoA,acoustic_outputs,rotors,mls,set
     num_processors = settings.number_of_multiprocessing_workers
     orientation[1] = orientation[1] + np.pi/2 # rotor tilt angle between the rotor hub plane and the vehicle hub plane
     body2thrust    = sp.spatial.transform.Rotation.from_rotvec(orientation).as_matrix()
-
-    ti = time.time() 
+ 
     blade_section_position_vectors                                 = Data() 
     blade_section_position_vectors.blade_section_coordinate_sys    = np.zeros((num_cpt,num_mic,num_rot,num_sec,num_azi,num_cf,3,1))
     blade_section_position_vectors.rotor_coordinate_sys            = np.zeros((num_cpt,num_mic,num_rot,num_sec,num_azi,num_cf,3,1))
@@ -175,11 +173,7 @@ def compute_blade_section_source_coordinates(AoA,acoustic_outputs,rotors,mls,set
             blade_section_position_vectors.cos_t_v_t_r[:,mi,:,:,:,:,:]                       =  single_mic_blade_section_vectors.cos_t_v_t_r 
             blade_section_position_vectors.sin_t_v_t_r[:,mi,:,:,:,:,:]                       =  single_mic_blade_section_vectors.sin_t_v_t_r 
             
-            mi += 1
-            
-    tf           = time.time()
-    elapsed_time = round((tf-ti),2)
-    print('Noise Coordinate Computation Elapsed Time: ' + str(elapsed_time) + ' secs')      
+            mi += 1 
         
     return blade_section_position_vectors
 
