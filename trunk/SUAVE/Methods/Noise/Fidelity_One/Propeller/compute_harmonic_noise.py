@@ -152,20 +152,52 @@ def compute_harmonic_noise(harmonics,freestream,angle_of_attack,position_vector,
     harmonic_noise_results.SPL_prop_harmonic_1_3_spectrum_dBA[np.isinf(harmonic_noise_results.SPL_prop_harmonic_1_3_spectrum_dBA)] = 0
 
 
-    harmonic_noise_results.p_pref_harmonic                    = 10**(harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum/10)   
+    harmonic_noise_results.p_pref_harmonic                   = 10**(harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum/10)   
     harmonic_noise_results._pref_harmonic_dBA                = 10**(harmonic_noise_results.SPL_prop_harmonic_bpf_spectrum_dBA/10)  
     
     # compute acoustic waveforms around azimuth of propeller 
-    p_mT_H_azi = np.tile(p_mT_H[:,:,:,None,:],(1,1,1,num_azi,1))
-    p_mL_H_azi = np.tile(p_mL_H[:,:,:,None,:],(1,1,1,num_azi,1))
+    p_mT_H_time = np.tile(p_mT_H[:,:,:,None,:],(1,1,1,num_azi,1))
+    p_mL_H_time = np.tile(p_mL_H[:,:,:,None,:],(1,1,1,num_azi,1))
     m_azi      = np.tile(m[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1))
-    omega_azi  = np.tile(omega[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1))
-    az_time    = np.tile(aeroacoustic_data.omega[:,:,None,None,None],(1,num_mic,num_rot,num_azi,num_h))
-    p_t        = np.sum((p_mT_H_azi + p_mL_H_azi)*np.exp(-1j*m_azi*B*omega_azi*az_time),axis = 4)
-    p_t_abs    = abs(p_t)
+    omega_azi  = np.tile(omega[:,:,:,0,:][:,:,:,None,:],(1,1,1,num_azi,1)) 
+    azi        = np.tile(np.linspace(0,1,num_azi)[None,None,None,:,None],(num_cpt,num_mic,num_rot,1,num_h))
+    az_time    = np.tile(1/(aeroacoustic_data.omega[:,:,None,None,None]/(2*np.pi)),(1,num_mic,num_rot,num_azi,num_h))
+    p_t_abs    = np.sum((p_mT_H_time + p_mL_H_time)*np.exp(-1j*m_azi*B*omega_azi*azi*az_time),axis = 4)
+    p_mT_H_azi = np.sum((p_mT_H_time)*np.exp(-1j*m_azi*B*omega_azi*azi*az_time),axis = 4)
+    p_mL_H_azi = np.sum((p_mL_H_time)*np.exp(-1j*m_azi*B*omega_azi*azi*az_time),axis = 4)
+    #p_t_abs    = abs(p_t_abs) 
+ 
+    harmonic_noise_results.azimuthal_harmonic_total_pressure     = p_t_abs 
+    harmonic_noise_results.azimuthal_harmonic_total_SPL          = 20*np.log10((abs(p_t_abs))/p_ref)
+    harmonic_noise_results.azimuthal_harmonic_loading_pressure   = p_mL_H_azi
+    harmonic_noise_results.azimuthal_harmonic_loading_SPL        = 20*np.log10((abs(p_mL_H_azi))/p_ref)
+    harmonic_noise_results.azimuthal_harmonic_thickness_pressure = p_mT_H_azi
+    harmonic_noise_results.azimuthal_harmonic_thickness_SPL      = 20*np.log10((abs(p_mT_H_azi))/p_ref)
+    harmonic_noise_results.azimuthal_time                        = azi*az_time  
+     
+     
 
-    harmonic_noise_results.p_harmonic     = p_t_abs 
-    harmonic_noise_results.azimuthal_time = az_time 
-    
+    ## compute acoustic waveforms around azimuth of propeller 
+    #m_azi      = np.linspace(-80,80,161)
+    #num_h_azi  = 161
+    #p_mT_H_time = np.tile(p_mT_H[:,:,:,None,:],(1,1,1,num_azi,1))
+    #p_mL_H_time = np.tile(p_mL_H[:,:,:,None,:],(1,1,1,num_azi,1))
+    #m_azi      = np.tile(m_azi[None,None,None,None,:],(num_cpt,num_mic,num_rot,num_azi,1))
+    #omega_azi  = np.tile(omega[:,:,:,0,0][:,:,:,None,None],(1,1,1,num_azi,num_h_azi)) 
+    #azi        = np.tile(np.linspace(0,1,num_azi)[None,None,None,:,None],(num_cpt,num_mic,num_rot,1,num_h_azi))
+    #az_time    = np.tile(1/(aeroacoustic_data.omega[:,:,None,None,None]/(2*np.pi)),(1,num_mic,num_rot,num_azi,num_h_azi)) 
+    #p_t_abs    = np.sum((p_mT_H_time + p_mL_H_time)*np.exp(-1j*m_azi*B*omega_azi*azi*az_time),axis = 4)
+    #p_mT_H_azi = np.sum((p_mT_H_time)*np.exp(-1j*m_azi*B*omega_azi*azi*az_time),axis = 4)
+    #p_mL_H_azi = np.sum((p_mL_H_time)*np.exp(-1j*m_azi*B*omega_azi*azi*az_time),axis = 4)
+    ##p_t_abs    = abs(p_t_abs) 
+ 
+    #harmonic_noise_results.azimuthal_harmonic_total_pressure     = p_t_abs 
+    #harmonic_noise_results.azimuthal_harmonic_total_SPL          = 20*np.log10((abs(p_t_abs))/p_ref)
+    #harmonic_noise_results.azimuthal_harmonic_loading_pressure   = p_mL_H_azi
+    #harmonic_noise_results.azimuthal_harmonic_loading_SPL        = 20*np.log10((abs(p_mL_H_azi))/p_ref)
+    #harmonic_noise_results.azimuthal_harmonic_thickness_pressure = p_mT_H_azi
+    #harmonic_noise_results.azimuthal_harmonic_thickness_SPL      = 20*np.log10((abs(p_mT_H_azi))/p_ref)
+    #harmonic_noise_results.azimuthal_time                        = azi*az_time  
+          
     return
  

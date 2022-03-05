@@ -98,11 +98,17 @@ def propeller_mid_fidelity(rotors,aeroacoustic_data,segment,settings):
     Results.SPL_harmonic                                  = SPL_spectra_arithmetic(SPL_spectra_arithmetic(Noise.SPL_prop_harmonic_1_3_spectrum))    
     Results.SPL_broadband                                 = SPL_spectra_arithmetic(SPL_spectra_arithmetic(Noise.SPL_prop_broadband_1_3_spectrum)) 
     Results.SPL_harmonic_1_3_spectrum                     = SPL_spectra_arithmetic(Noise.SPL_prop_harmonic_1_3_spectrum)       
-    Results.SPL_broadband_1_3_spectrum                    = SPL_spectra_arithmetic(Noise.SPL_prop_broadband_1_3_spectrum)  
-    Results.SPL_prop_azimuthal_harmonic                   = Noise.p_harmonic  
-    Results.azimuthal_time                                = Noise.azimuthal_time
-    Results.p_pref_azimuthal_broadband                    = Noise.p_pref_azimuthal_broadband                    
-    Results.p_pref_azimuthal_broadband_dBA                = Noise.p_pref_azimuthal_broadband_dBA                
-    Results.SPL_prop_azimuthal_broadband_spectrum         = Noise.SPL_prop_azimuthal_broadband_spectrum         
-    Results.SPL_prop_azimuthal_broadband_spectrum_dBA     = Noise.SPL_prop_azimuthal_broadband_spectrum_dBA       
+    Results.SPL_broadband_1_3_spectrum                    = SPL_spectra_arithmetic(Noise.SPL_prop_broadband_1_3_spectrum)   
+    Results.azimuthal_time                                = Noise.azimuthal_time 
+    Results.azimuthal_harmonic_total_pressure             = Noise.azimuthal_harmonic_total_pressure  
+    Results.azimuthal_harmonic_loading_pressure           = Noise.azimuthal_harmonic_loading_pressure    
+    Results.azimuthal_harmonic_total_SPL                  = Noise.azimuthal_harmonic_total_SPL
+    Results.azimuthal_harmonic_loading_SPL                = Noise.azimuthal_harmonic_loading_SPL         
+    Results.azimuthal_harmonic_thickness_pressure         = Noise.azimuthal_harmonic_thickness_pressure  
+    Results.azimuthal_harmonic_thickness_SPL              = Noise.azimuthal_harmonic_thickness_SPL             
+    Results.azimuthal_broadband_pressure                  = Noise.azimuthal_broadband_pressure         
+    Results.azimuthal_broadband_pressure_dBA              = Noise.azimuthal_broadband_pressure_dBA     
+    Results.azimuthal_broadband_spectrum_SPL              = Noise.azimuthal_broadband_spectrum_SPL     
+    Results.azimuthal_broadband_spectrum_SPL_dBA          = Noise.azimuthal_broadband_spectrum_SPL_dBA 
+    
     return Results

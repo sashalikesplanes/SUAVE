@@ -59,10 +59,10 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
            SPL_prop_broadband_spectrum_dBA           - dBA-Weighted broadband noise in blade passing frequency spectrum                   [dbA]     
            SPL_prop_broadband_1_3_spectrum           - broadband noise in 1/3 octave spectrum                                             [dB]
            SPL_prop_broadband_1_3_spectrum_dBA       - dBA-Weighted broadband noise in 1/3 octave spectrum                                [dBA]                               
-           p_pref_azimuthal_broadband                - azimuthal varying pressure ratio of broadband noise                                [Unitless]       
-           p_pref_azimuthal_broadband_dBA            - azimuthal varying pressure ratio of dBA-weighted broadband noise                   [Unitless]     
-           SPL_prop_azimuthal_broadband_spectrum     - azimuthal varying broadband noise in blade passing frequency spectrum              [dB]      
-           SPL_prop_azimuthal_broadband_spectrum_dBA - azimuthal varying dBA-Weighted broadband noise in blade passing frequency spectrum [dbA]   
+           azimuthal_broadband_pressure                - azimuthal varying pressure ratio of broadband noise                                [Unitless]       
+           azimuthal_broadband_pressure_dBA            - azimuthal varying pressure ratio of dBA-weighted broadband noise                   [Unitless]     
+           azimuthal_broadband_spectrum_SPL     - azimuthal varying broadband noise in blade passing frequency spectrum              [dB]      
+           azimuthal_broadband_spectrum_SPL_dBA - azimuthal varying dBA-Weighted broadband noise in blade passing frequency spectrum [dbA]   
         
     Properties Used:
         N/A   
@@ -116,10 +116,10 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
     broadband_noise_results.SPL_prop_broadband_spectrum_dBA           = np.zeros_like(broadband_noise_results.p_pref_broadband)
     broadband_noise_results.SPL_prop_broadband_1_3_spectrum           = np.zeros((num_cpt,num_mic,num_rot,num_cf))
     broadband_noise_results.SPL_prop_broadband_1_3_spectrum_dBA       = np.zeros((num_cpt,num_mic,num_rot,num_cf))
-    broadband_noise_results.p_pref_azimuthal_broadband                = np.zeros((num_cpt,num_mic,num_rot,num_azi,num_cf))
-    broadband_noise_results.p_pref_azimuthal_broadband_dBA            = np.zeros_like(broadband_noise_results.p_pref_azimuthal_broadband)
-    broadband_noise_results.SPL_prop_azimuthal_broadband_spectrum     = np.zeros_like(broadband_noise_results.p_pref_azimuthal_broadband)
-    broadband_noise_results.SPL_prop_azimuthal_broadband_spectrum_dBA = np.zeros_like(broadband_noise_results.p_pref_azimuthal_broadband)
+    broadband_noise_results.azimuthal_broadband_pressure                = np.zeros((num_cpt,num_mic,num_rot,num_azi,num_cf))
+    broadband_noise_results.azimuthal_broadband_pressure_dBA            = np.zeros_like(broadband_noise_results.azimuthal_broadband_pressure)
+    broadband_noise_results.azimuthal_broadband_spectrum_SPL     = np.zeros_like(broadband_noise_results.azimuthal_broadband_pressure)
+    broadband_noise_results.azimuthal_broadband_spectrum_SPL_dBA = np.zeros_like(broadband_noise_results.azimuthal_broadband_pressure)
     
     if np.all(Omega == 0):
         pass  
@@ -417,10 +417,10 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
         broadband_noise_results.SPL_prop_broadband_spectrum_dBA               = A_weighting(SPL_rotor,frequency) 
         broadband_noise_results.SPL_prop_broadband_1_3_spectrum               = SPL_harmonic_to_third_octave_old(SPL_rotor,f,settings)  
         broadband_noise_results.SPL_prop_broadband_1_3_spectrum_dBA           = SPL_harmonic_to_third_octave_old(SPL_rotor_dBA,f,settings)   
-        broadband_noise_results.p_pref_azimuthal_broadband                    = 10**(SPL_rotor_azi /10)   
-        broadband_noise_results.p_pref_azimuthal_broadband_dBA                = 10**(SPL_rotor_dBA_azi /10)  
-        broadband_noise_results.SPL_prop_azimuthal_broadband_spectrum         = SPL_rotor_azi  
-        broadband_noise_results.SPL_prop_azimuthal_broadband_spectrum_dBA     = SPL_rotor_dBA_azi 
+        broadband_noise_results.azimuthal_broadband_pressure                  = 10**(SPL_rotor_azi /10)   
+        broadband_noise_results.azimuthal_broadband_pressure_dBA              = 10**(SPL_rotor_dBA_azi /10)  
+        broadband_noise_results.azimuthal_broadband_spectrum_SPL              = SPL_rotor_azi  
+        broadband_noise_results.azimuthal_broadband_spectrum_SPL_dBA          = SPL_rotor_dBA_azi 
 
         tf2_5           = time.time()
         elapsed_time = round((tf2_5-ti2_5),2)
@@ -551,10 +551,10 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
     #res.SPL_prop_broadband_spectrum_dBA               = A_weighting(SPL_rotor,frequency) 
     #res.SPL_prop_broadband_1_3_spectrum               = SPL_harmonic_to_third_octave(SPL_rotor,f,settings)  
     #res.SPL_prop_broadband_1_3_spectrum_dBA           = SPL_harmonic_to_third_octave(SPL_rotor_dBA,f,settings)   
-    #res.p_pref_azimuthal_broadband                    = 10**(SPL_rotor_azi /10)   
-    #res.p_pref_azimuthal_broadband_dBA                = 10**(SPL_rotor_dBA_azi /10)  
-    #res.SPL_prop_azimuthal_broadband_spectrum         = SPL_rotor_azi  
-    #res.SPL_prop_azimuthal_broadband_spectrum_dBA     = SPL_rotor_dBA_azi  
+    #res.azimuthal_broadband_pressure                    = 10**(SPL_rotor_azi /10)   
+    #res.azimuthal_broadband_pressure_dBA                = 10**(SPL_rotor_dBA_azi /10)  
+    #res.azimuthal_broadband_spectrum_SPL         = SPL_rotor_azi  
+    #res.azimuthal_broadband_spectrum_SPL_dBA     = SPL_rotor_dBA_azi  
          
     #return res
  
