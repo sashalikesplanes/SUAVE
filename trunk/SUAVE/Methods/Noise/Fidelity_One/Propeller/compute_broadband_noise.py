@@ -311,9 +311,7 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
         tau_w[::,:,:,:,:,:,1]       = np.tile((upper_surface_cf*(0.5*rho_blade*(U_blade**2)))[:,None,None,:,:,None],(1,num_mic,num_rot,1,1,num_cf))      # upper surface wall shear stress
         Theta[:,:,:,:,:,:,0]        = np.tile(lower_surface_theta[:,None,None,:,:,None],(1,num_mic,num_rot,1,1,num_cf))      # lower surface momentum thickness
         Theta[:,:,:,:,:,:,1]        = np.tile(upper_surface_theta[:,None,None,:,:,None],(1,num_mic,num_rot,1,1,num_cf))      # upper surface momentum thickness      
-               
-       
-        ti2_1 = time.time() 
+                
         # Update dimensions for computation
         r         = np.tile(r[None,None,None,:,None,None],(num_cpt,num_mic,num_rot,1,num_azi,num_cf))
         c         = np.tile(blade_chords[None,None,None,:,None,None],(num_cpt,num_mic,num_rot,1,num_azi,num_cf))
@@ -328,13 +326,8 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
 
         X   = np.tile(bspv.blade_section_coordinate_sys[:,:,:,:,:,:,0,:],(1,1,1,1,1,1,2))
         Y   = np.tile(bspv.blade_section_coordinate_sys[:,:,:,:,:,:,1,:],(1,1,1,1,1,1,2))
-        Z   = np.tile(bspv.blade_section_coordinate_sys[:,:,:,:,:,:,2,:],(1,1,1,1,1,1,2))
+        Z   = np.tile(bspv.blade_section_coordinate_sys[:,:,:,:,:,:,2,:],(1,1,1,1,1,1,2)) 
         
-
-        tf2_1          = time.time()
-        elapsed_time = round((tf2_1-ti2_1),2)
-        print('Broadband Noise Computation Part 1 Elapsed Time: ' + str(elapsed_time) + ' secs')                  
-        ti2_2 = time.time()
         # ------------------------------------------------------------
         # ****** BLADE MOTION CALCULATIONS ******
         # the rotational Mach number of the blade section
@@ -357,12 +350,8 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
         norm_L_sq     = (1/triangle)*abs(np.exp(1j*2*triangle)*((1 - (1 + 1j)*(cc_1 - 1j*ss_1)) \
                         + ((np.exp(-1j*2*triangle))*(np.sqrt((((omega/(1 +  (Omega*r/c_0)*(X/R_s))) /(0.8*U_inf)) + mu*M + gamma)/(mu*X/epsilon +gamma))) \
                            *(1 + 1j)*(cc_2 - 1j*ss_2)) ))
-        norm_L_sq     = np.nan_to_num(norm_L_sq)
-
-        tf2_2          = time.time()
-        elapsed_time = round((tf2_2-ti2_2),2)
-        print('Broadband Noise Computation Part 2 Elapsed Time: ' + str(elapsed_time) + ' secs')                  
-        ti2_3 = time.time()
+        norm_L_sq     = np.nan_to_num(norm_L_sq) 
+        
         # ------------------------------------------------------------
         # ****** EMPIRICAL WALL PRESSURE SPECTRUM ******
         ones                     = np.ones_like(Theta)
@@ -377,12 +366,7 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
                                     *(omega*delta_star/Ue)),(np.minimum(3*ones,(0.139 + 3.1043*beta_c)) + 7)) ))
         Phi_pp                   = ((tau_w**2)*delta_star*Phi_pp_expression)/Ue
         Phi_pp[np.isinf(Phi_pp)] = 0.
-        Phi_pp[np.isnan(Phi_pp)] = 0.
-
-        tf2_3          = time.time()
-        elapsed_time = round((tf2_3-ti2_3),2)
-        print('Broadband Noise Computation Part 3 Elapsed Time: ' + str(elapsed_time) + ' secs')               
-        ti2_4 = time.time()
+        Phi_pp[np.isnan(Phi_pp)] = 0. 
         
         # Power Spectral Density from each blade
         mult       = ((omega/c_0)**2)*(c**2)*delta_r*(1/(32*np.pi**2))*(B/(2*np.pi))
@@ -403,13 +387,7 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
         SPL_rotor_dBA_azi            = A_weighting(SPL_rotor_azi,frequency)  
         
         # convert to 1/3 octave spectrum
-        f = np.repeat(np.atleast_2d(frequency),num_cpt,axis = 0)
-        
-
-        tf2_4          = time.time()
-        elapsed_time = round((tf2_4-ti2_4),2)
-        print('Broadband Noise Computation Part 4 Elapsed Time: ' + str(elapsed_time) + ' secs')                   
-        ti2_5 = time.time()
+        f = np.repeat(np.atleast_2d(frequency),num_cpt,axis = 0) 
         
         broadband_noise_results.p_pref_broadband                              = 10**(SPL_rotor /10) 
         broadband_noise_results.p_pref_broadband_dBA                          = 10**(SPL_rotor_dBA /10)   
@@ -420,11 +398,7 @@ def compute_broadband_noise(freestream,angle_of_attack,bspv,
         broadband_noise_results.azimuthal_broadband_pressure                  = 10**(SPL_rotor_azi /10)   
         broadband_noise_results.azimuthal_broadband_pressure_dBA              = 10**(SPL_rotor_dBA_azi /10)  
         broadband_noise_results.azimuthal_broadband_spectrum_SPL              = SPL_rotor_azi  
-        broadband_noise_results.azimuthal_broadband_spectrum_SPL_dBA          = SPL_rotor_dBA_azi 
-
-        tf2_5           = time.time()
-        elapsed_time = round((tf2_5-ti2_5),2)
-        print('Broadband Noise Computation Part 5 Elapsed Time: ' + str(elapsed_time) + ' secs')            
+        broadband_noise_results.azimuthal_broadband_spectrum_SPL_dBA          = SPL_rotor_dBA_azi       
              
     return
 
