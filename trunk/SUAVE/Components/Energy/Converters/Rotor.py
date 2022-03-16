@@ -96,11 +96,6 @@ class Rotor(Energy_Component):
         self.inputs.pitch_command      = 0.
         self.variable_pitch            = False
         
-        self.optimization_parameters                     = Data() 
-        self.optimization_parameters.slack_constaint     = 1E-3 # slack constraint 
-        self.optimization_parameters.ideal_SPL_dBA       = 45 
-        self.optimization_parameters.aeroacoustic_weight = 1.   # 1 = aerodynamic optimization, 0.5 = equally weighted aeroacoustic optimization, 0 = acoustic optimization  
-         
         # Initialize the default wake set to Fidelity Zero
         self.Wake                      = Rotor_Wake_Fidelity_Zero()
         

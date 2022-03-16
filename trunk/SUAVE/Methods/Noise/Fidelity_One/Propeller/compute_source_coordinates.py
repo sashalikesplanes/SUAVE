@@ -10,7 +10,6 @@
 import numpy as np 
 from SUAVE.Core import Data
 import scipy as sp
-
 # ----------------------------------------------------------------------
 #  Source Coordinates 
 # ---------------------------------------------------------------------

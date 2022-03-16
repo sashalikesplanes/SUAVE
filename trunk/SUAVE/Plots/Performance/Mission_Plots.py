@@ -726,7 +726,7 @@ def plot_battery_degradation(results, line_color = 'bo-',line_color2 = 'rs--', s
     axis_font = {'size':'14'}   
     
     fig  = plt.figure(save_filename)
-    fig.set_size_inches(12, 10)   
+    fig.set_size_inches(12, 6)
     fig.suptitle('Battery Cell Degradation')
     
     num_segs          = len(results.segments)
@@ -743,21 +743,21 @@ def plot_battery_degradation(results, line_color = 'bo-',line_color2 = 'rs--', s
         resistance_growth[i]   = results.segments[i].conditions.propulsion.battery_resistance_growth_factor 
         charge_throughput[i]   =  results.segments[i].conditions.propulsion.battery_cell_charge_throughput[-1,0]  
          
-    axes = plt.subplot(2,2,1)
+    axes = plt.subplot(1,3,1)
     axes.plot(charge_throughput, capacity_fade, line_color)
     axes.plot(charge_throughput, resistance_growth, line_color2) 
     axes.set_ylabel('% Capacity Fade/Resistance Growth',axis_font)
     axes.set_xlabel('Time (hrs)',axis_font)
     set_axes(axes)      
 
-    axes = plt.subplot(2,2,2)
+    axes = plt.subplot(1,3,2)
     axes.plot(time_hrs, capacity_fade, line_color)
     axes.plot(time_hrs, resistance_growth, line_color2) 
     axes.set_ylabel('% Capacity Fade/Resistance Growth',axis_font)
     axes.set_xlabel('Time (hrs)',axis_font)
     set_axes(axes)     
 
-    axes = plt.subplot(2,2,3)
+    axes = plt.subplot(1,3,3)
     axes.plot(cycle_day, capacity_fade, line_color)
     axes.plot(cycle_day, resistance_growth, line_color2) 
     axes.set_ylabel('% Capacity Fade/Resistance Growth',axis_font)
