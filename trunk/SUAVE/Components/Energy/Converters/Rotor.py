@@ -373,7 +373,7 @@ class Rotor(Energy_Component):
         lamdaw, F, _ = compute_inflow_and_tip_loss(r,R,Wa,Wt,B)
 
         # Compute aerodynamic forces based on specified input airfoil or surrogate
-        Cl, Cdval, alpha, Ma,W = compute_airfoil_aerodynamics(beta,c,r,R,B,Wa,Wt,a,nu,a_loc,a_geo,cl_sur,cd_sur,ctrl_pts,Nr,Na,tc,use_2d_analysis)
+        Cl, Cdval, alpha, Ma,W ,Re= compute_airfoil_aerodynamics(beta,c,r,R,B,Wa,Wt,a,nu,a_loc,a_geo,cl_sur,cd_sur,ctrl_pts,Nr,Na,tc,use_2d_analysis)
         
         
         # compute HFW circulation at the blade
@@ -517,6 +517,8 @@ class Rotor(Energy_Component):
                     blade_tangential_velocity         = Vt_avg,
                     blade_axial_velocity              = Va_avg,
                     disc_tangential_induced_velocity  = Vt_ind_2d,
+                    blade_effective_angle_of_attack   = alpha,
+                    blade_reynolds_number             = Re,
                     disc_axial_induced_velocity       = Va_ind_2d,
                     disc_tangential_velocity          = Vt_2d,
                     disc_axial_velocity               = Va_2d,

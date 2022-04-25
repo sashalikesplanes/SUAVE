@@ -270,8 +270,7 @@ def set_optimized_rotor_planform(rotor,optimization_problem):
     B                        = rotor.number_of_blades  
     rotor.design_tip_mach    = rotor_opt.design_tip_mach
     omega                    = rotor.design_tip_mach* 343 /rotor.tip_radius 
-    rotor.angular_velocity   = omega      
-    V                        = rotor.freestream_velocity  
+    rotor.angular_velocity   = omega       
     alt                      = rotor.design_altitude
     rotor.chord_distribution = rotor_opt.chord_distribution
     rotor.twist_distribution = rotor_opt.twist_distribution
@@ -290,13 +289,9 @@ def set_optimized_rotor_planform(rotor,optimization_problem):
 
 
     # Run Conditions     
-    theta  = np.array([135])*Units.degrees + 1E-1
-    S      = np.maximum(alt , 20*Units.feet) 
-
-    # microphone locations
-    positions  = np.zeros(( len(theta),3))
-    for i in range(len(theta)):
-        positions [i][:] = [0.0 , S*np.sin(theta[i])  ,S*np.cos(theta[i])]   
+    theta     = rotor.design_microphone_angle
+    S         = np.maximum(alt , 20*Units.feet)  
+    positions = np.array([[0.0 , S*np.sin(theta)  ,S*np.cos(theta)]])
 
     # Set up for Propeller Model
     rotor.inputs.omega                                     = np.atleast_2d(omega).T
@@ -305,9 +300,9 @@ def set_optimized_rotor_planform(rotor,optimization_problem):
     conditions.freestream.dynamic_viscosity                = np.ones((ctrl_pts,1)) * mu
     conditions.freestream.speed_of_sound                   = np.ones((ctrl_pts,1)) * a 
     conditions.freestream.temperature                      = np.ones((ctrl_pts,1)) * T  
-    conditions.frames.inertial.velocity_vector             = np.array([[0, 0. ,V]])
+    conditions.frames.inertial.velocity_vector             = np.array([rotor.design_velocity_vector])
     conditions.propulsion.throttle                         = np.ones((ctrl_pts,1))*1.0
-    conditions.frames.body.transform_to_inertial           = np.array([[[1., 0., 0.],[0., 1., 0.],[0., 0., -1.]]]) 
+    conditions.frames.body.transform_to_inertial           = np.array([[[1., 0., 0.],[0., 1., 0.],[0., 0., 1.]]]) # np.array([[[1., 0., 0.],[0., 1., 0.],[0., 0., -1.]]]) 
     
     # Run Propeller model 
     thrust , torque, power, Cp  , noise_data , etap        = rotor.spin(conditions)
@@ -354,7 +349,7 @@ def set_optimized_rotor_planform(rotor,optimization_problem):
     rotor.mid_chord_alignment        = MCA
     rotor.thickness_to_chord         = t_c 
     rotor.design_SPL_dBA             = mean_SPL
-    rotor.design_performance         = noise_data
+    rotor.design_performance         = noise_data  
     rotor.design_acoustics           = propeller_noise
     rotor.blade_solidity             = sigma    
     rotor.airfoil_flag               = True    
@@ -504,7 +499,7 @@ def post_process(nexus):
     c             = rotor.chord_distribution 
     beta          = rotor.twist_distribution 
     omega         = rotor.design_tip_mach* 343 /rotor.tip_radius   
-    V             = rotor.freestream_velocity     
+    V             = np.linalg.norm(rotor.design_velocity_vector) 
     alt           = rotor.design_altitude
     alpha         = rotor.optimization_parameters.aeroacoustic_weight
     epsilon       = rotor.optimization_parameters.slack_constaint 
@@ -519,12 +514,10 @@ def post_process(nexus):
     mu             = atmo_data.dynamic_viscosity[0]  
 
     # Define microphone locations
-    theta     = np.array([135])*Units.degrees + 1E-1
+    theta     = rotor.design_microphone_angle 
     S         = np.maximum(alt , 20*Units.feet) 
-    ctrl_pts  = 1  
-    positions = np.zeros(( len(theta),3))
-    for i in range(len(theta)):
-        positions [i][:] = [0.0 , S*np.sin(theta[i])  ,S*np.cos(theta[i])]  
+    ctrl_pts  = 1   
+    positions = np.array([[0.0 , S*np.sin(theta)  ,S*np.cos(theta)]])
 
     # Define run conditions 
     rotor.inputs.omega                               = np.atleast_2d(omega).T
@@ -533,9 +526,9 @@ def post_process(nexus):
     conditions.freestream.dynamic_viscosity          = np.ones((ctrl_pts,1)) * mu
     conditions.freestream.speed_of_sound             = np.ones((ctrl_pts,1)) * a 
     conditions.freestream.temperature                = np.ones((ctrl_pts,1)) * T 
-    conditions.frames.inertial.velocity_vector       = np.array([[0, 0. ,V]])
+    conditions.frames.inertial.velocity_vector       = np.array([rotor.design_velocity_vector])
     conditions.propulsion.throttle                   = np.ones((ctrl_pts,1))*1.0
-    conditions.frames.body.transform_to_inertial     = np.array([[[1., 0., 0.],[0., 1., 0.],[0., 0., -1.]]])  
+    conditions.frames.body.transform_to_inertial     = np.array([[[1., 0., 0.],[0., 1., 0.],[0., 0., 1.]]]) # np.array([[[1., 0., 0.],[0., 1., 0.],[0., 0., -1.]]])  
 
     # Run Propeller model 
     thrust , torque, power, Cp  , noise_data , etap  = rotor.spin(conditions) 
@@ -556,7 +549,7 @@ def post_process(nexus):
     # Run noise model    
     if alpha != 1:  
         try: 
-            propeller_noise   =  propeller_mid_fidelity(lift_rotors,noise_data,segment,settings)    
+            propeller_noise   = propeller_mid_fidelity(lift_rotors,noise_data,segment,settings)    
             Acoustic_Metric   = np.mean(propeller_noise.SPL_dBA) 
         except:
             Acoustic_Metric = 100        
@@ -612,8 +605,8 @@ def post_process(nexus):
     # OBJECTIVE FUNCTION
     # -------------------------------------------------------     
 
-    summary.Aero_Acoustic_Obj =  LA.norm((FM - ideal_FM)*100/(ideal_FM*100))*alpha + LA.norm((Acoustic_Metric - ideal_SPL)/(ideal_SPL))*(1-alpha) 
-    #summary.Aero_Acoustic_Obj =  LA.norm((Aerodynamic_Metric - ideal_aero)/ideal_aero)*alpha  + LA.norm((Acoustic_Metric - ideal_SPL)/ideal_SPL)*(1-alpha)
+    #summary.Aero_Acoustic_Obj =  LA.norm((FM - ideal_FM)*100/(ideal_FM*100))*alpha + LA.norm((Acoustic_Metric - ideal_SPL)/(ideal_SPL))*(1-alpha) 
+    summary.Aero_Acoustic_Obj =  LA.norm(Aerodynamic_Metric/200000)*alpha  + LA.norm((Acoustic_Metric - ideal_SPL)/ideal_SPL)*(1-alpha)
         
     # -------------------------------------------------------
     # PRINT ITERATION PERFOMRMANCE
