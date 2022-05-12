@@ -3,6 +3,7 @@
 # @ingroup Methods
 
 from . import Airfoil_Panel_Method
+from . import Airfoil_Panel_Method_New
 from . import AVL
 from . import AERODAS
 from . import Fidelity_Zero
